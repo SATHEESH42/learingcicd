@@ -14,4 +14,4 @@ jobs:
        name: Show GitHub env context
        run: echo "${{ toJson(env) }}"
        name: Show GitHub  runner context
-       run: echo "${{ toJson(runner) }}"
+       run: echo '${{ toJson(runner) }}'
