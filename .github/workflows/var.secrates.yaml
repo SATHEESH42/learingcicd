@@ -1,0 +1,16 @@
+---
+
+on:
+    push:
+      branches:
+        - main
+env:
+    GLOBAL_ENV_VAR: learning thoughts global
+    ORG_NAME: xyz limited
+
+jobs:
+    vars-job:
+        runs-on: ubuntu-latest
+        steps:
+            - name: print vars
+              run: echo 'group = ${{ vars.GROUP_NAME }}  user = ${{ vars.USERNAME }} token = ${{ secrets.TOKEN  }}'
