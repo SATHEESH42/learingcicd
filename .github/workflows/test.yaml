@@ -1,0 +1,39 @@
+on:
+  push:
+    branches:
+      - main
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndTest
+    pool: ubuntu-latest
+    steps:
+    - script: npm install && npm run build && npm test
+    - task: PublishPipelineArtifact@1
+      inputs:
+        artifactName: 'app-build'
+        targetPath: '$(Build.ArtifactStagingDirectory)'
+
+- stage: Staging
+  dependsOn: Build
+  jobs:
+  - deployment: DeployToStaging
+    environment: Staging
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+          - script: echo "Deploying to Staging..."
+
+- stage: Production
+  dependsOn: Staging
+  jobs:
+  - deployment: DeployToProd
+    environment: Production
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - download: current
+          - script: echo "Deploying to Production..."
