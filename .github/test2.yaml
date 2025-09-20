@@ -1,0 +1,34 @@
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+parameters:
+- name: succeed
+  type: boolean
+  default: false
+
+trigger:
+- main
+
+pool:
+  vmImage: ubuntu-latest
+
+jobs:
+- job: Work
+  steps:
+  - script: echo Hello, world!
+    displayName: 'Run a one-line script'
+  - script: git clone malformed input
+    condition: eq(${{ parameters.succeed }}, false)
+
+- job: ErrorHandler
+  dependsOn: Work
+  condition: failed()
+  steps:
+  - bash: |
+      echo "Pipeline failed, creating a bug."
+    displayName: 'Error Handler'
