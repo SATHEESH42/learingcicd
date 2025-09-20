@@ -1,9 +1,7 @@
 on:
   push:
     branches:
-      - main
-stages:
-- stage: Build
+      - main  
   jobs:
   - job: BuildAndTest
     pool: ubuntu-latest
@@ -13,10 +11,6 @@ stages:
       inputs:
         artifactName: 'app-build'
         targetPath: '$(Build.ArtifactStagingDirectory)'
-
-- stage: Staging
-  dependsOn: Build
-  jobs:
   - deployment: DeployToStaging
     environment: Staging
     strategy:
@@ -25,10 +19,6 @@ stages:
           steps:
           - download: current
           - script: echo "Deploying to Staging..."
-
-- stage: Production
-  dependsOn: Staging
-  jobs:
   - deployment: DeployToProd
     environment: Production
     strategy:
