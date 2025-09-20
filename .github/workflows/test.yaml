@@ -1,29 +1,56 @@
+name: Build Test Deploy Pipeline
+
 on:
   push:
     branches:
-      - main  
-  jobs:
-  - job: BuildAndTest
-    pool: ubuntu-latest
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
     steps:
-    - script: npm install && npm run build && npm test
-    - task: PublishPipelineArtifact@1
-      inputs:
-        artifactName: 'app-build'
-        targetPath: '$(Build.ArtifactStagingDirectory)'
-  - deployment: DeployToStaging
-    environment: Staging
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-          - script: echo "Deploying to Staging..."
-  - deployment: DeployToProd
-    environment: Production
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: current
-          - script: echo "Deploying to Production..."
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install, Build and Test
+        run: |
+          npm install
+          npm run build
+          npm test
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-build
+          path: ./build # Adjust path as needed
+
+  deploy-to-staging:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: app-build
+
+      - name: Deploy to Staging
+        run: echo "Deploying to Staging environment..."
+
+  deploy-to-production:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: app-build
+
+      - name: Deploy to Production
+        run: echo "Deploying to Production environment..."
