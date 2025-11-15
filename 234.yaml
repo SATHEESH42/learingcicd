@@ -1,0 +1,16 @@
+variables:
+  APP_NAME: "demo"
+
+stages:
+  - test
+  - build
+
+test_job:
+  stage: test
+  script:
+    - echo "Testing $APP_NAME"
+
+build_job:
+  stage: build
+  script:
+    - echo "Building $APP_NAME"
