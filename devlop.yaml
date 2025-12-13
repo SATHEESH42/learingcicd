@@ -1,0 +1,87 @@
+name: "pull request workflow"
+
+on:
+    # The pull_request event is triggered only for PRs targeting the specified branch.
+    pull_request:
+        branches:
+            - developer/v1.0
+    # The workflow_dispatch event is now correctly indented for manual triggering.
+    workflow_dispatch:
+
+permissions:
+  contents: read # Required for actions/checkout
+  security-events: write # Required for github/codeql-action/upload-sarif@v3
+
+jobs:
+    pr-job:
+        runs-on: self-hosted
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            # -------------------------------------------------------------------------
+            # FIX: Corrected the shell command syntax to properly extract the first 7 characters (short SHA).
+            # -------------------------------------------------------------------------
+            - name: Set Short SHA
+              id: short-sha-step
+              run: |
+                  # Use Bash parameter expansion to get the first 7 characters of the head commit SHA.
+                  FULL_SHA=${{ github.event.pull_request.head.sha }}
+                  SHORT_SHA=${FULL_SHA:0:7}
+                  # Set as step output for use in subsequent steps.
+                  echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
+                  echo "Generated Short SHA: $SHORT_SHA"
+
+            # --- Order Service Build and Scan ---
+            - name: Build and export order service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/order-service
+                  load: true # Exports the image to the local Docker daemon for Trivy scanning
+                  tags: order-service
+
+            - name: Setup Trivy
+              # It's better to use the specific version of the setup action instead of 'v0.2.0' as that is quite old.
+              # I'm keeping the original version for minimal changes but recommending users check for the latest.
+              uses: aquasecurity/setup-trivy@v0.2.0
+              with:
+                  cache: true
+                  version: v0.65.0
+
+            - name: Run Trivy vulnerability scan for order
+              # It's common practice to use the main branch for the action: aquasecurity/trivy-action@master
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: order-service
+                  format: "sarif"
+                  output: "order-trivy-results.sarif"
+
+            # --- Product Service Build and Scan ---
+            - name: Build and export product service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/product-service
+                  load: true
+                  tags: product-service
+
+            - name: Run Trivy vulnerability scan for product
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: product-service
+                  format: "sarif"
+                  output: "product-trivy-results.sarif"
+
+            # --- Store Front Service Build and Scan ---
+            - name: Build and export store front service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/store-front
+                  load: true
+                  tags: store-front
+
+            - name: Run Trivy vulnerability scan for store
+              uses: aquasecurity/trivy-action@master
+              with:
+                  image-ref: store-front
+                  format: "sarif"
+                  output: "store-trivy-results.sarif"

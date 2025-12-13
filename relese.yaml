@@ -1,0 +1,51 @@
+name: "developer  workflow"
+
+on:
+    push:
+        branches:
+            - developer/v1.0
+    workflow_dispatch:
+
+permissions:
+    contents: read # Required for actions/checkout
+    security-events: write # Required for github/codeql-action/upload-sarif@v3
+
+jobs:
+    dev-ci:
+        runs-on: self-hosted
+        steps:
+            # --- Order Service Build and Scan ---
+            - name: Build and export order service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/order-service
+                  load: true # Exports the image to the local Docker daemon for Trivy scanning
+                  tags: shaikkhajaibrahim/devorder-service:latest
+                  push: true
+
+            # --- Product Service Build and Scan ---
+            - name: Build and export product service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/product-service
+                  load: true
+                  tags: shaikkhajaibrahim/devproduct-service
+                  push: true
+
+            # --- Store Front Service Build and Scan ---
+            - name: Build and export store front service to Docker
+              uses: docker/build-push-action@v6
+              with:
+                  context: ./src/store-front
+                  load: true
+                  tags: shaikkhajaibrahim/devstore-front
+                  push: true
+
+            - name: Run Terraform to proovision infra
+              run: |
+                cd infra/terraform
+                terraform init
+                 terraform apply -auto-approve
+            - name: deploy into k8s
+              run: |
+                kubectl apply -f aks-store-all-in-one.yaml
