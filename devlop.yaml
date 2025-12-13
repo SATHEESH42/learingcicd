@@ -71,7 +71,7 @@ jobs:
                   format: "sarif"
                   output: "product-trivy-results.sarif"
 
-            # --- Store Front Service Build and Scan ---
+          # --- Store Front Service Build and Scan ---
             - name: Build and export store front service to Docker
               uses: docker/build-push-action@v6
               with:
